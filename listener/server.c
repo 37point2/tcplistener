@@ -34,24 +34,26 @@ void serve(Server *server) {
 
 int get_client(Server *server, struct sockaddr *cli_addr) {
 	if (server->current_connections > 0)
-		cleanup_closed_connections(server);
-	if (server->current_connections < server->max_connections) {
-		int clilen = sizeof(cli_addr);
-		int clisockfd = accept(server->sockfd, (struct sockaddr *) cli_addr, (socklen_t *) &clilen);
-		if (clisockfd > 0)
-			server->current_connections++;
-		return clisockfd;
-		}
-	return 0;
+	cleanup_closed_connections(server);
+	int clilen = sizeof(cli_addr);
+	int clisockfd = accept(server->sockfd, (struct sockaddr *) cli_addr, (socklen_t *) &clilen);
+	if (clisockfd > 0)
+		server->current_connections++;
+	return clisockfd;
 }
 
 void cleanup_closed_connections(Server *server) {
+	// wait for any terminated child processes
+	// stay in loop if current_connections == max_connections
 	int status;
 	while(server->current_connections > 0) {
 		if (waitpid(-1, &status, WNOHANG) > 0) {
 			server->current_connections--;
-			fprintf(stdout, "Child exited with status - %d\n", status);
-		} else {
+			if (WIFEXITED(status)) {
+				if (WEXITSTATUS(status) != 0)
+					fprintf(stderr, "Child exited with status - %d\n", WEXITSTATUS(status));
+			}
+		} else if (server->current_connections != server->max_connections){
 			break;
 		}
 	}

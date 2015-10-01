@@ -3,11 +3,13 @@
 #include <string.h>
 #include <unistd.h>
 #include <wait.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <arpa/inet.h>
 #include "server.h"
+#include "client.h"
+#include "util.h"
 
 uint MAX_CONNECTIONS = 8;
 
@@ -16,10 +18,11 @@ int main(int argc, char *argv[]) {
 	struct sockaddr_in cli_addr;
 	static const struct sockaddr_in empty_sockaddr_in;
 	struct Server server;
+	struct Client client;
 	if(argc < 2) {
-		fprintf(stderr, "ERROR, no port provided\n");
-		exit(1);
+		error("ERROR, no port provided");
 	}
+	FILE *logfd = fopen("log.txt", "w+");
 	sockfd = init(&server, atoi(argv[1]), MAX_CONNECTIONS);
 	if(sockfd < 0) {
 		perror("ERROR opening socket\n");
@@ -30,14 +33,10 @@ int main(int argc, char *argv[]) {
 		clisockfd = get_client(&server, (struct sockaddr *) &cli_addr);
 		if (clisockfd < 0) {
 			perror("ERROR on accept\n");
-		} else if (clisockfd == 0) {
-			fprintf(stdout, "Maximum connections reached\n");
-		}
+		} 
 		if (fork() == 0) {
 			close(sockfd);
-			fprintf(stdout, "Received a connection\n");
-			char * addr = inet_ntoa(cli_addr.sin_addr);
-			fprintf(stdout, "Peer - %s\n", addr);
+			client_handle(&client, clisockfd, &cli_addr, logfd);
 			close(clisockfd);
 			return 0;
 		} else {
