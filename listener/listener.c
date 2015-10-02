@@ -23,7 +23,7 @@ int main(int argc, char *argv[]) {
 	if(argc < 2) {
 		error("ERROR, no port provided");
 	}
-	int logfd = open("log.txt", O_WRONLY | O_CREAT | O_APPEND | O_DSYNC);
+	int logfd = open("log.txt", O_RDWR | O_CREAT | O_APPEND | O_DSYNC, S_IRUSR | S_IWUSR | S_IRGRP);
 	if (logfd == -1) {
 		perror("Could not open file");
 	}
