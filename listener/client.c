@@ -147,7 +147,6 @@ int client_read(Client *client, char delim) {
 int client_write_log(Client *client, char *data) {
 	while(1) {
 		if (flock(client->logfd, LOCK_EX) == 0) {
-			printf("%s", data);
 			write(client->logfd, data, strlen(data));
 			flock(client->logfd, LOCK_UN);
 			break;

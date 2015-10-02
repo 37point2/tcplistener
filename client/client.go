@@ -2,6 +2,7 @@ package main
 
 import "runtime"
 import "net"
+import "os"
 import "fmt"
 import "time"
 import "sync"
@@ -18,9 +19,9 @@ func RandString(min int, max int) string {
 	return string(b)
 }
 
-func connect(wg *sync.WaitGroup) {
+func connect(wg *sync.WaitGroup, endpoint string) {
 	defer wg.Done()
-	conn, err := net.Dial("tcp", "127.0.0.1:5555")
+	conn, err := net.Dial("tcp", endpoint)
 	buf := make([]byte, 512)
 	defer conn.Close()
 	if err == nil {
@@ -43,13 +44,20 @@ func connect(wg *sync.WaitGroup) {
 }
 
 func main() {
+	if len(os.Args) < 3 {
+		fmt.Printf("Usage: go run client.go $host $port")
+		os.Exit(1)
+	}
+	host := os.Args[1]
+	port := os.Args[2]
+	endpoint := host + ":" + port
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	NUM_CLIENTS := 100
 	var wg sync.WaitGroup
 	wg.Add(NUM_CLIENTS)
 	start := time.Now().UnixNano()
 	for i:=0; i < NUM_CLIENTS; i++ {
-		go connect(&wg)
+		go connect(&wg, endpoint)
 	}
 	wg.Wait()
 	stop := time.Now().UnixNano()
