@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <sys/types.h>
+#include <sys/file.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include "client.h"
@@ -14,7 +15,7 @@ const char *identack = "IDENTACK";
 const char *authack = "AUTHACK";
 const char *dataack = "DATAACK";
 
-int client_handle(Client *client, int sockfd, struct sockaddr_in *cli_addr, FILE *logfd) {
+int client_handle(Client *client, int sockfd, struct sockaddr_in *cli_addr, int logfd) {
 	client->sockfd = sockfd;
 	client->cli_addr = *cli_addr;
 	client->logfd = logfd;
@@ -66,7 +67,9 @@ int client_message_ident(Client *client){
 			data[3] == 'N' &&
 			data[4] == 'T' &&
 			data[5] == '\t') {
-			fprintf(client->logfd, "%s\t%s\n", client->session_id, data);
+			char out[sizeof(client->session_id) + 1 + sizeof(data) + 1];
+			snprintf(out, sizeof(out), "%s\t%s\n", client->session_id, data);
+			client_write_log(client, out);
 			return 0;
 		}
 	}
@@ -88,7 +91,8 @@ int client_message_auth(Client *client){
 			data[2] == 'T' &&
 			data[3] == 'H' &&
 			data[4] == '\t') {
-			fprintf(client->logfd, "%s\t%s\n", client->session_id, data);
+			char out[sizeof(client->session_id) + 1 + sizeof(data) + 1];
+			snprintf(out, sizeof(out), "%s\t%s\n", client->session_id, data);			client_write_log(client, out);
 			return 0;
 		}
 	}
@@ -110,7 +114,9 @@ int client_message_data(Client *client) {
 			data[2] == 'T' &&
 			data[3] == 'A' &&
 			data[4] == '\t') {
-			fprintf(client->logfd, "%s\t%s\n", client->session_id, data);
+			char out[sizeof(client->session_id) + 1 + sizeof(data) + 1];
+			snprintf(out, sizeof(out), "%s\t%s\n", client->session_id, data);
+			client_write_log(client, out);
 			return 0;
 		}
 	}
@@ -136,4 +142,18 @@ int client_read(Client *client, char delim) {
 	} while (strchr(client->buf, delim) == NULL);
 	// subtract addresses to get index
 	return (int) (strchr(client->buf, delim) - client->buf);
+}
+
+int client_write_log(Client *client, char *data) {
+	while(1) {
+		if (flock(client->logfd, LOCK_EX) == 0) {
+			printf("%s", data);
+			write(client->logfd, data, strlen(data));
+			flock(client->logfd, LOCK_UN);
+			break;
+		} else {
+			perror("Could not get lock");
+		}
+	}
+	return 0;
 }

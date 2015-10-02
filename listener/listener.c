@@ -3,6 +3,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <wait.h>
+#include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -22,7 +23,10 @@ int main(int argc, char *argv[]) {
 	if(argc < 2) {
 		error("ERROR, no port provided");
 	}
-	FILE *logfd = fopen("log.txt", "w+");
+	int logfd = open("log.txt", O_WRONLY | O_CREAT | O_APPEND | O_DSYNC);
+	if (logfd == -1) {
+		perror("Could not open file");
+	}
 	sockfd = init(&server, atoi(argv[1]), MAX_CONNECTIONS);
 	if(sockfd < 0) {
 		perror("ERROR opening socket\n");

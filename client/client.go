@@ -9,7 +9,8 @@ import "math/rand"
 
 const letters = "abcdefghijklmnopqrstuvwxyz"
 
-func RandString(n int) string {
+func RandString(min int, max int) string {
+	n := rand.Intn(max-min) + min
 	b := make([]byte, n)
 	for i := range b {
 		b[i] = letters[rand.Intn(len(letters))]
@@ -23,15 +24,15 @@ func connect(wg *sync.WaitGroup) {
 	buf := make([]byte, 512)
 	defer conn.Close()
 	if err == nil {
-		fmt.Fprintf(conn, "IDENT\t%s\n", RandString(rand.Intn(24)))
+		fmt.Fprintf(conn, "IDENT\t%s\n", RandString(6,24))
 		nr, _ := conn.Read(buf)
 		if err == nil {
 			fmt.Printf("Received %s\n", string(buf[0:nr]))
-			fmt.Fprintf(conn, "AUTH\t%s\n", RandString(rand.Intn(32)))
+			fmt.Fprintf(conn, "AUTH\t%s\n", RandString(6,32))
 			nr, _ = conn.Read(buf)
 			if err == nil {
 				fmt.Printf("Received %s\n", string(buf[0:nr]))
-				fmt.Fprintf(conn, "DATA\t%s\n", RandString(rand.Intn(2048)))
+				fmt.Fprintf(conn, "DATA\t%s\n", RandString(10,2048))
 				nr, _ = conn.Read(buf)
 				if err == nil {
 					fmt.Printf("Received %s\n", string(buf[0:nr]))
