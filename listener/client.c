@@ -41,6 +41,8 @@ int client_handle(Client *client, int sockfd, struct sockaddr_in *cli_addr, int 
 }
 
 int client_generate_sessionid(Client *client) {
+	// create session id
+	// seconds since epoch + client addr + client port
 	time_t t = time(NULL);
 	uint32_t cliaddr = client->cli_addr.sin_addr.s_addr;
 	in_port_t cliport = client->cli_addr.sin_port;
@@ -145,6 +147,7 @@ int client_read(Client *client, char delim) {
 }
 
 int client_write_log(Client *client, char *data) {
+	// spin wait for file lock
 	while(1) {
 		if (flock(client->logfd, LOCK_EX) == 0) {
 			write(client->logfd, data, strlen(data));
